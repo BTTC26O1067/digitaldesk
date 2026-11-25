@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigitalDesk</title>
+    <link rel="stylesheet" href="digital.css">
+</head>
+<body>
+    <main class="panel">
+        <h1>DigitalDesk</h1>
+        <p>Logic Gate Tester</p>
+
+        <label for="gate">Gate</label>
+        <select id="gate">
+            <option>AND</option>
+            <option>OR</option>
+            <option>NOT</option>
+            <option>NAND</option>
+            <option>NOR</option>
+            <option>XOR</option>
+            <option>XNOR</option>
+        </select>
+
+        <label for="a">Input A</label>
+        <select id="a">
+            <option value="0">0</option>
+            <option value="1">1</option>
+        </select>
+
+        <label for="b">Input B (not used by NOT)</label>
+        <select id="b">
+            <option value="0">0</option>
+            <option value="1">1</option>
+        </select>
+
+        <button id="run">Calculate</button>
+        <p id="result">Output appears here.</p>
+    </main>
+
+    <section id="truth-table-section">
+        <h2>Circuit Truth Table</h2>
+        <p id="truthTableMessage">Build and simulate a circuit to generate its truth table.</p>
+        <div class="table-scroll">
+            <table id="truthTable">
+                <thead id="truthTableHead"></thead>
+                <tbody id="truthTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="workbench-section">
+        <h2>Digital Logic Workbench</h2>
+        <p>Select a logic gate and add it to your workbench.</p>
+
+        <label for="workbenchGate">Choose Logic Gate:</label>
+        <select id="workbenchGate">
+            <option value="AND">AND Gate</option>
+            <option value="OR">OR Gate</option>
+            <option value="NOT">NOT Gate</option>
+            <option value="NAND">NAND Gate</option>
+            <option value="NOR">NOR Gate</option>
+            <option value="XOR">XOR Gate</option>
+            <option value="XNOR">XNOR Gate</option>
+        </select>
+
+        <div class="button-row">
+            <button id="addGateButton">Add Gate</button>
+            <button id="clearWorkbenchButton" class="secondary-button">Clear All</button>
+        </div>
+
+
+        <div id="project-toolbar" class="button-row">
+            <button id="saveCircuitButton" class="secondary-button">Save Circuit</button>
+            <button id="exportCircuitButton" class="secondary-button">Export JSON</button>
+            <button id="importCircuitButton" class="secondary-button">Import JSON</button>
+            <button id="exampleCircuitButton" class="secondary-button">Load NAND Example</button>
+            <input id="importCircuitFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <h3>My Workbench</h3>
+        <div id="gateWorkbench">
+            <p>No gates added yet.</p>
+        </div>
+    </section>
+
+    <section id="circuit-section">
+        <h2>Circuit Builder</h2>
+        <p>Drag gates to arrange them. Select an output point, then select an input point to connect them.</p>
+
+        <div id="circuitCanvas">
+            <p id="canvasMessage">Your circuit canvas is empty. Add gates to start building!</p>
+        </div>
+
+        <div id="circuitControls">
+            <p>Add gates to the canvas to configure and simulate a circuit.</p>
+        </div>
+    </section>
+
+    <script src="digital.js"></script>
+</body>
+</html>

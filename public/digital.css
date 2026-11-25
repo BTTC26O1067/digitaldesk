@@ -1,0 +1,368 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 1px 16px 40px;
+    font-family: Arial, sans-serif;
+    background: #eef4ff;
+    color: #172554;
+}
+
+.panel,
+#truth-table-section,
+#workbench-section,
+#circuit-section {
+    background: #ffffff;
+    border-radius: 12px;
+    margin: 30px auto;
+    padding: 24px;
+}
+
+.panel {
+    max-width: 460px;
+}
+
+h1 {
+    text-align: center;
+}
+
+label {
+    display: block;
+    margin-top: 14px;
+    font-weight: 600;
+}
+
+select,
+button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 7px;
+    font-size: 16px;
+    border-radius: 7px;
+}
+
+select {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #172554;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: 0;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+#result {
+    padding: 12px;
+    background: #dbeafe;
+    border-radius: 8px;
+    font-weight: bold;
+    min-height: 44px;
+}
+
+/* Truth table */
+#truth-table-section {
+    max-width: 900px;
+}
+
+#truthTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#truthTable th,
+#truthTable td {
+    border: 1px solid #cbd5e1;
+    padding: 12px;
+    text-align: center;
+}
+
+#truthTable th {
+    background: #2563eb;
+    color: white;
+}
+
+#truthTable td {
+    background: #f1f5f9;
+    color: #1f2937;
+}
+
+.table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Workbench */
+#workbench-section {
+    max-width: 900px;
+}
+
+#workbenchGate {
+    width: 100%;
+}
+
+.button-row {
+    display: flex;
+    gap: 12px;
+}
+
+.button-row button {
+    flex: 1;
+}
+
+.secondary-button {
+    background: #475569;
+}
+
+.secondary-button:hover {
+    background: #334155;
+}
+
+#gateWorkbench {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.gate-card {
+    width: 170px;
+    padding: 15px;
+    background: #eff6ff;
+    border: 2px solid #2563eb;
+    border-radius: 9px;
+    text-align: center;
+}
+
+.gate-card h3 {
+    color: #1e40af;
+    margin: 5px 0 8px;
+}
+
+.gate-card p {
+    color: #334155;
+    margin: 8px 0;
+}
+
+.remove-gate-button {
+    margin-top: 12px;
+    padding: 9px;
+}
+
+/* Circuit builder */
+#circuit-section {
+    max-width: 1200px;
+}
+
+#circuitCanvas {
+    position: relative;
+    width: 100%;
+    min-height: 480px;
+    margin-top: 20px;
+    padding: 25px;
+    overflow: hidden;
+    border: 2px dashed #2563eb;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+#canvasMessage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 20px;
+    color: #64748b;
+    font-size: 18px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.canvas-gate {
+    position: absolute;
+    left: 25px;
+    top: 25px;
+    width: 150px;
+    min-height: 100px;
+    padding: 15px;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    z-index: 2;
+}
+
+.canvas-gate:active {
+    cursor: grabbing;
+}
+
+.canvas-gate h3 {
+    color: #2563eb;
+    margin: 10px 0;
+    font-size: 17px;
+}
+
+.canvas-gate p {
+    color: #64748b;
+    margin: 0;
+}
+
+.gate-input-port,
+.gate-output-port {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border: 2px solid #2563eb;
+    border-radius: 50%;
+    z-index: 5;
+    box-sizing: border-box;
+    cursor: crosshair;
+}
+
+.gate-input-port {
+    left: -8px;
+    transform: translateY(-50%);
+}
+
+.gate-output-port {
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.gate-output-port.selected {
+    background: #f59e0b;
+    border-color: #d97706;
+    transform: scale(1.4);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+}
+
+#wireLayer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#circuitControls {
+    margin-top: 20px;
+    padding: 18px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+}
+
+#circuitControls h3 {
+    margin-top: 0;
+}
+
+.input-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.input-control {
+    min-width: 130px;
+    flex: 1;
+}
+
+.input-control label {
+    margin-top: 0;
+}
+
+.input-control select {
+    margin-top: 6px;
+}
+
+#simulateCircuitButton {
+    max-width: 260px;
+    margin-top: 18px;
+}
+
+#circuitOutput {
+    margin: 15px 0 0;
+    padding: 12px;
+    background: #dbeafe;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+
+/* Live circuit signal visualization */
+.gate-signal-value {
+    display: inline-block;
+    margin-top: 9px !important;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #334155 !important;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gate-signal-value.signal-zero {
+    background: #e2e8f0;
+    color: #475569 !important;
+}
+
+.gate-signal-value.signal-one {
+    background: #dcfce7;
+    color: #15803d !important;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .panel,
+    #truth-table-section,
+    #workbench-section,
+    #circuit-section {
+        padding: 16px;
+    }
+
+    #circuitCanvas {
+        min-height: 520px;
+        padding: 12px;
+    }
+
+    .button-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .canvas-gate {
+        width: 135px;
+    }
+}
+
+/* DigitalDesk project toolbar */
+#project-toolbar { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+#project-toolbar button { min-width:120px; }
