@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="digital.css">
 </head>
 <body>
+    <header class="topbar">
+        <strong>DigitalDesk</strong>
+        <span>Interactive digital logic workbench</span>
+    </header>
+
     <main class="panel">
         <h1>DigitalDesk</h1>
         <p>Logic Gate Tester</p>
@@ -51,7 +56,18 @@
 
     <section id="workbench-section">
         <h2>Digital Logic Workbench</h2>
-        <p>Select a logic gate and add it to your workbench.</p>
+        <p class="toolbox-label">Toolbox: click a gate or drag it onto the canvas.</p>
+        <div id="gatePalette">
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="AND">AND</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="OR">OR</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="NOT">NOT</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="NAND">NAND</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="NOR">NOR</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="XOR">XOR</div>
+            <div class="palette-gate" role="button" tabindex="0" draggable="true" data-gate="XNOR">XNOR</div>
+        </div>
+        <details>
+        <summary>Add by list</summary>
 
         <label for="workbenchGate">Choose Logic Gate:</label>
         <select id="workbenchGate">
@@ -63,6 +79,7 @@
             <option value="XOR">XOR Gate</option>
             <option value="XNOR">XNOR Gate</option>
         </select>
+        </details>
 
         <div class="button-row">
             <button id="addGateButton">Add Gate</button>
@@ -77,15 +94,17 @@
             <button id="exampleCircuitButton" class="secondary-button">Load NAND Example</button>
             <input id="importCircuitFile" type="file" accept=".json,application/json" hidden>
         </div>
-        <h3>My Workbench</h3>
+        <details>
+        <summary>My Workbench (gate list)</summary>
         <div id="gateWorkbench">
             <p>No gates added yet.</p>
         </div>
+        </details>
     </section>
 
     <section id="circuit-section">
         <h2>Circuit Builder</h2>
-        <p>Drag gates to arrange them. Select an output point, then select an input point to connect them.</p>
+        <p>Drag gates to arrange them. Click an output point, then an input point to wire them. Double-click a wire to delete it.</p>
 
         <div id="circuitCanvas">
             <p id="canvasMessage">Your circuit canvas is empty. Add gates to start building!</p>

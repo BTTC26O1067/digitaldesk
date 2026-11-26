@@ -113,8 +113,12 @@ function ddSimulateCircuit(circuit) {
 }
 
 // Generates all 0/1 combinations for the circuit's external inputs.
+const DD_MAX_TABLE_INPUTS = 12;
 function ddGenerateTruthTable(circuit) {
     const inputNames = Object.keys(circuit.inputs);
+    if (inputNames.length > DD_MAX_TABLE_INPUTS) {
+        throw new Error("Truth tables are limited to " + DD_MAX_TABLE_INPUTS + " inputs.");
+    }
     const numberOfRows = 2 ** inputNames.length;
     const rows = [];
 
@@ -170,6 +174,7 @@ const truthTableMessage = document.getElementById("truthTableMessage");
 function ddBuildWorkbenchCircuit() {
     const externalInputs = {};
     const inputNamesByPort = {};
+    const portKeyByName = {};
     let inputNumber = 0;
 
     function getInputName() {
@@ -195,13 +200,11 @@ function ddBuildWorkbenchCircuit() {
                 gateInputs.push("G" + connection.fromGateId);
             } else {
                 const inputName = getInputName();
+                const portKey = gate.id + ":" + inputIndex;
                 gateInputs.push(inputName);
-                externalInputs[inputName] =
-                    Object.prototype.hasOwnProperty.call(circuitInputValues, inputName)
-                        ? circuitInputValues[inputName]
-                        : 0;
-
-                inputNamesByPort[gate.id + ":" + inputIndex] = inputName;
+                externalInputs[inputName] = circuitInputValues[portKey] === 1 ? 1 : 0;
+                inputNamesByPort[portKey] = inputName;
+                portKeyByName[inputName] = portKey;
             }
         }
 
@@ -232,6 +235,7 @@ function ddBuildWorkbenchCircuit() {
             output: "G" + outputGate.id
         },
         inputNamesByPort: inputNamesByPort,
+        portKeyByName: portKeyByName,
         outputGateId: outputGate.id
     };
 }
@@ -271,6 +275,8 @@ function updateGateSignalLabels(signalValues) {
     gates.forEach(gate => {
         const signalLabel = document.getElementById("gate-signal-" + gate.id);
         const value = signalValues ? signalValues["G" + gate.id] : undefined;
+        const symbolBox = document.getElementById("canvas-gate-" + gate.id);
+        if (symbolBox) symbolBox.classList.toggle("out-1", value === 1);
 
         if (!signalLabel) {
             return;
@@ -317,13 +323,13 @@ function drawConnections(wireLayer) {
 
         const wire = document.createElementNS(
             "http://www.w3.org/2000/svg",
-            "line"
+            "path"
         );
 
-        wire.setAttribute("x1", x1);
-        wire.setAttribute("y1", y1);
-        wire.setAttribute("x2", x2);
-        wire.setAttribute("y2", y2);
+        const bend = Math.max(40, Math.abs(x2 - x1) / 2);
+        wire.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + bend) + " " + y1 +
+            " " + (x2 - bend) + " " + y2 + " " + x2 + " " + y2);
+        wire.setAttribute("fill", "none");
         const sourceValue = latestSignalValues
             ? latestSignalValues["G" + connection.fromGateId]
             : undefined;
@@ -338,6 +344,13 @@ function drawConnections(wireLayer) {
             ? String(sourceValue)
             : "unknown");
         wire.setAttribute("stroke-linecap", "round");
+        wire.style.pointerEvents = "stroke";
+        wire.style.cursor = "pointer";
+        wire.addEventListener("dblclick", function () {
+            connections = connections.filter(item => item !== connection);
+            drawConnections(wireLayer);
+            renderCircuitControls();
+        });
 
         wireLayer.appendChild(wire);
     });
@@ -390,7 +403,7 @@ function renderCircuitControls() {
         select.value = String(model.circuit.inputs[inputName]);
 
         select.addEventListener("change", function () {
-            circuitInputValues[inputName] = Number(select.value);
+            circuitInputValues[model.portKeyByName[inputName]] = Number(select.value);
             simulateWorkbenchCircuit();
         });
 
@@ -478,7 +491,7 @@ function simulateWorkbenchCircuit() {
             const inputSelect = document.getElementById("circuit-input-" + inputName);
             if (inputSelect) {
                 circuit.inputs[inputName] = Number(inputSelect.value);
-                circuitInputValues[inputName] = Number(inputSelect.value);
+                circuitInputValues[model.portKeyByName[inputName]] = Number(inputSelect.value);
             }
         });
 
@@ -487,6 +500,7 @@ function simulateWorkbenchCircuit() {
 
         latestSignalValues = result.values;
         updateGateSignalLabels(latestSignalValues);
+        ddUpdateSwitches(model);
 
         const wireLayer = document.getElementById("wireLayer");
         if (wireLayer) {
@@ -496,12 +510,18 @@ function simulateWorkbenchCircuit() {
         outputElement.textContent =
             "Final output (Gate " + model.outputGateId + "): " + result.output;
 
-        const truthTable = ddGenerateTruthTable(circuit);
-        ddDisplayTruthTable(truthTable);
-
         console.log("Workbench signal values:", result.values);
         console.log("Workbench final output:", result.output);
-        console.table(truthTable);
+
+        if (Object.keys(circuit.inputs).length > DD_MAX_TABLE_INPUTS) {
+            ddDisplayTruthTable([]);
+            truthTableMessage.textContent = "This circuit has more than " +
+                DD_MAX_TABLE_INPUTS + " inputs, so the truth table is not generated.";
+        } else {
+            const truthTable = ddGenerateTruthTable(circuit);
+            ddDisplayTruthTable(truthTable);
+            console.table(truthTable);
+        }
     } catch (error) {
         const outputElement = document.getElementById("circuitOutput");
         outputElement.textContent = "Simulation error: " + error.message;
@@ -519,6 +539,64 @@ function simulateWorkbenchCircuit() {
     }
 }
 
+
+// ---------- Gate symbols, on-canvas switches and lamps ----------
+const DD_SYMBOLS = (() => {
+    const L = (x1, x2, y) => '<path class="lead" d="M' + x1 + ' ' + y + 'H' + x2 + '"/>';
+    const ins = x => L(0, x, 28) + L(0, x, 56);
+    const out = x => '<path class="lead lead-out" d="M' + x + ' 42H130"/>';
+    const bub = x => '<circle class="shape" cx="' + x + '" cy="42" r="6"/>';
+    const AND = '<path class="shape" d="M22 12H58A30 30 0 0 1 58 72H22Z"/>';
+    const OR = '<path class="shape" d="M18 12Q62 12 92 42Q62 72 18 72Q38 42 18 12Z"/>';
+    const XB = '<path class="shape back" d="M8 12Q28 42 8 72"/>';
+    return {
+        AND: ins(22) + out(88) + AND,
+        NAND: ins(22) + out(100) + AND + bub(94),
+        OR: ins(26) + out(92) + OR,
+        NOR: ins(26) + out(104) + OR + bub(98),
+        XOR: ins(14) + out(92) + OR + XB,
+        XNOR: ins(14) + out(104) + OR + XB + bub(98),
+        NOT: L(0, 24, 42) + out(96) + '<path class="shape" d="M24 14L84 42L24 70Z"/>' + bub(90)
+    };
+})();
+
+function ddGateSymbol(type) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 130 84");
+    svg.setAttribute("class", "gate-symbol");
+    svg.innerHTML = DD_SYMBOLS[type] || "";
+    return svg;
+}
+
+// Flip the switch drawn on an unconnected input point.
+function ddTogglePortSwitch(gateId, inputIndex) {
+    const key = gateId + ":" + inputIndex;
+    circuitInputValues[key] = circuitInputValues[key] === 1 ? 0 : 1;
+    renderCircuitControls();   // rebuilds the input list from circuitInputValues and re-simulates
+}
+
+// Show a switch on every open input and a lamp on every gate that feeds nothing.
+function ddUpdateSwitches(model) {
+    gates.forEach(gate => {
+        const inputCount = gate.type === "NOT" ? 1 : 2;
+        for (let i = 0; i < inputCount; i++) {
+            const el = document.getElementById("port-switch-" + gate.id + "-" + i);
+            if (!el) continue;
+            const key = gate.id + ":" + i;
+            const open = Object.prototype.hasOwnProperty.call(model.inputNamesByPort, key);
+            el.style.display = open ? "block" : "none";
+            el.className = "port-switch" + (circuitInputValues[key] === 1 ? " on" : "");
+            el.textContent = circuitInputValues[key] === 1 ? "1" : "0";
+            el.title = open ? "Input " + model.inputNamesByPort[key] + ": click to switch 0 / 1" : "";
+        }
+        const lamp = document.getElementById("out-lamp-" + gate.id);
+        if (lamp) {
+            const isEnd = !connections.some(c => c.fromGateId === gate.id);
+            lamp.style.display = isEnd ? "block" : "none";
+            lamp.className = "out-lamp" + (latestSignalValues && latestSignalValues["G" + gate.id] === 1 ? " on" : "");
+        }
+    });
+}
 
 // Rebuild the workbench cards and circuit canvas.
 function displayGates() {
@@ -593,6 +671,7 @@ function displayGates() {
 
         canvasGate.appendChild(canvasHeading);
         canvasGate.appendChild(canvasNumber);
+        canvasGate.appendChild(ddGateSymbol(gate.type));
 
         const signalLabel = document.createElement("p");
         signalLabel.id = "gate-signal-" + gate.id;
@@ -609,6 +688,15 @@ function displayGates() {
             inputPort.className = "gate-input-port";
             inputPort.style.top =
                 ((inputIndex + 1) * 100 / (inputCount + 1)) + "%";
+
+            const portSwitch = document.createElement("div");
+            portSwitch.id = "port-switch-" + gate.id + "-" + inputIndex;
+            portSwitch.className = "port-switch";
+            portSwitch.addEventListener("pointerdown", function (event) {
+                event.stopPropagation();
+                ddTogglePortSwitch(gate.id, inputIndex);
+            });
+            inputPort.appendChild(portSwitch);
 
             inputPort.addEventListener("pointerdown", function (event) {
                 event.stopPropagation();
@@ -663,6 +751,10 @@ function displayGates() {
         const outputPort = document.createElement("div");
         outputPort.id = "output-port-" + gate.id;
         outputPort.className = "gate-output-port";
+        const lamp = document.createElement("div");
+        lamp.id = "out-lamp-" + gate.id;
+        lamp.className = "out-lamp";
+        outputPort.appendChild(lamp);
 
         outputPort.addEventListener("pointerdown", function (event) {
             event.stopPropagation();
@@ -684,8 +776,12 @@ function displayGates() {
         canvasGate.appendChild(outputPort);
 
         // Initial gate positions. Dragging changes these positions.
-        canvasGate.style.left = (25 + (index % 5) * 180) + "px";
-        canvasGate.style.top = (25 + Math.floor(index / 5) * 130) + "px";
+        if (!Number.isFinite(gate.x) || !Number.isFinite(gate.y)) {
+            gate.x = 86 + (index % 5) * 190;
+            gate.y = 25 + Math.floor(index / 5) * 130;
+        }
+        canvasGate.style.left = gate.x + "px";
+        canvasGate.style.top = gate.y + "px";
 
         // Drag support
         let isDragging = false;
@@ -712,9 +808,9 @@ function displayGates() {
             let newLeft = event.clientX - canvasRect.left - offsetX;
             let newTop = event.clientY - canvasRect.top - offsetY;
 
-            newLeft = Math.max(0, Math.min(
+            newLeft = Math.max(66, Math.min(
                 newLeft,
-                circuitCanvas.clientWidth - canvasGate.offsetWidth
+                circuitCanvas.clientWidth - canvasGate.offsetWidth - 46
             ));
 
             newTop = Math.max(0, Math.min(
@@ -724,6 +820,8 @@ function displayGates() {
 
             canvasGate.style.left = newLeft + "px";
             canvasGate.style.top = newTop + "px";
+            gate.x = newLeft;
+            gate.y = newTop;
 
             drawConnections(wireLayer);
         });
@@ -757,16 +855,68 @@ function ddSaveCircuit() {
         alert("Unable to save circuit: " + err.message);
     }
 }
-function ddRestoreCircuit(data) {
+const DD_GATE_TYPES = ["AND", "OR", "NOT", "NAND", "NOR", "XOR", "XNOR"];
+
+// Checks a saved/imported project completely before anything on screen is replaced.
+function ddValidateProject(data) {
     if (!data || !Array.isArray(data.gates) || !Array.isArray(data.connections)) {
         throw new Error("Invalid DigitalDesk circuit file.");
     }
-    gates = data.gates.map(g => ({ id: Number(g.id), type: String(g.type) }));
-    connections = data.connections.map(c => ({
-        fromGateId: Number(c.fromGateId), toGateId: Number(c.toGateId), inputIndex: Number(c.inputIndex)
-    }));
-    gateCount = Math.max(Number(data.gateCount || 0), ...gates.map(g => g.id), 0);
-    circuitInputValues = data.circuitInputValues || {};
+    const ids = new Set();
+    const newGates = data.gates.map(g => {
+        const id = Number(g && g.id), type = String(g && g.type);
+        if (!Number.isInteger(id) || id < 1) throw new Error("A gate has an invalid id.");
+        if (ids.has(id)) throw new Error("Duplicate gate id " + id + ".");
+        if (!DD_GATE_TYPES.includes(type)) throw new Error("Unknown gate type: " + type);
+        ids.add(id);
+        const gate = { id, type };
+        if (Number.isFinite(g.x) && Number.isFinite(g.y)) { gate.x = g.x; gate.y = g.y; }
+        return gate;
+    });
+    const used = new Set(), indegree = {}, next = {};
+    ids.forEach(id => { indegree[id] = 0; next[id] = []; });
+    const newConnections = data.connections.map(c => {
+        const from = Number(c && c.fromGateId), to = Number(c && c.toGateId), index = Number(c && c.inputIndex);
+        if (!ids.has(from) || !ids.has(to)) throw new Error("A connection points to a missing gate.");
+        if (from === to) throw new Error("A gate cannot connect to itself.");
+        const maxInputs = newGates.find(g => g.id === to).type === "NOT" ? 1 : 2;
+        if (!Number.isInteger(index) || index < 0 || index >= maxInputs) {
+            throw new Error("A connection uses an invalid input point.");
+        }
+        if (used.has(to + ":" + index)) throw new Error("An input point has more than one wire.");
+        used.add(to + ":" + index);
+        indegree[to]++;
+        next[from].push(to);
+        return { fromGateId: from, toGateId: to, inputIndex: index };
+    });
+    const queue = [...ids].filter(id => indegree[id] === 0);
+    let visited = 0;
+    while (queue.length) {
+        const id = queue.pop();
+        visited++;
+        next[id].forEach(n => { if (--indegree[n] === 0) queue.push(n); });
+    }
+    if (visited !== ids.size) throw new Error("The file contains a circular connection.");
+    return { gates: newGates, connections: newConnections };
+}
+
+function ddRestoreCircuit(data) {
+    const valid = ddValidateProject(data);
+    gates = valid.gates;
+    connections = valid.connections;
+    gateCount = Math.max(Number(data.gateCount || 0) || 0, ...gates.map(g => g.id), 0);
+    const saved = data.circuitInputValues && typeof data.circuitInputValues === "object"
+        ? data.circuitInputValues : {};
+    circuitInputValues = {};
+    if (gates.length > 0) {
+        // Input values are stored per input point; older files stored them by letter (A, B, ...).
+        const model = ddBuildWorkbenchCircuit();
+        Object.keys(model.portKeyByName).forEach(name => {
+            const key = model.portKeyByName[name];
+            const value = saved[key] !== undefined ? saved[key] : saved[name];
+            if (value === 1) circuitInputValues[key] = 1;
+        });
+    }
     selectedOutputGateId = null;
     latestSignalValues = null;
     displayGates();
@@ -816,15 +966,40 @@ document.getElementById("importCircuitFile").addEventListener("change", event =>
 document.getElementById("exampleCircuitButton").addEventListener("click", ddLoadNandExample);
 
 // Add a new gate.
-addGateButton.addEventListener("click", function () {
+function ddAddGate(type, x, y) {
     gateCount++;
-
-    gates.push({
-        id: gateCount,
-        type: gateSelect.value
-    });
-
+    const gate = { id: gateCount, type: type };
+    if (Number.isFinite(x) && Number.isFinite(y)) { gate.x = x; gate.y = y; }
+    gates.push(gate);
     displayGates();
+}
+
+addGateButton.addEventListener("click", function () {
+    ddAddGate(gateSelect.value);
+});
+
+// Toolbox: click a gate, or drag it onto the canvas.
+document.querySelectorAll("#gatePalette [data-gate]").forEach(button => {
+    button.innerHTML = '<svg viewBox="0 0 130 84" class="palette-symbol">' +
+        DD_SYMBOLS[button.dataset.gate] + '</svg><span>' + button.dataset.gate + '</span>';
+    button.addEventListener("click", () => ddAddGate(button.dataset.gate));
+    button.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            ddAddGate(button.dataset.gate);
+        }
+    });
+    button.addEventListener("dragstart", event =>
+        event.dataTransfer.setData("text/plain", button.dataset.gate));
+});
+circuitCanvas.addEventListener("dragover", event => event.preventDefault());
+circuitCanvas.addEventListener("drop", event => {
+    event.preventDefault();
+    const type = event.dataTransfer.getData("text/plain");
+    if (!DD_GATE_TYPES.includes(type)) return;
+    const rect = circuitCanvas.getBoundingClientRect();
+    ddAddGate(type, Math.max(66, event.clientX - rect.left - 65),
+                    Math.max(0, event.clientY - rect.top - 50));
 });
 
 

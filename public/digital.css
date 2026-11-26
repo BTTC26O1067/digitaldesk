@@ -366,3 +366,164 @@ button:disabled {
 /* DigitalDesk project toolbar */
 #project-toolbar { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
 #project-toolbar button { min-width:120px; }
+
+
+/* ==========================================================
+   Workbench layout (logic.ly style): top bar, toolbox on the
+   left, large canvas in the centre.  Existing rules above are
+   kept; these only rearrange and restyle.
+   ========================================================== */
+body {
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-areas:
+        "top top"
+        "tool canvas"
+        "tester table";
+    gap: 14px;
+    align-items: start;
+    padding: 0 14px 30px;
+    background: #e9edf3;
+}
+.topbar {
+    grid-area: top;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0 -14px;
+    padding: 12px 20px;
+    background: #172554;
+    color: #fff;
+}
+.topbar strong { font-size: 20px; letter-spacing: .3px; }
+.topbar span { color: #bfdbfe; font-size: 14px; }
+
+#workbench-section { grid-area: tool; max-width: none; margin: 0; padding: 16px; }
+#circuit-section   { grid-area: canvas; max-width: none; margin: 0; padding: 16px; min-width: 0; }
+.panel             { grid-area: tester; max-width: none; margin: 0; padding: 16px; }
+#truth-table-section { grid-area: table; max-width: none; margin: 0; padding: 16px; min-width: 0; }
+.panel h1 { display: none; }
+
+#workbench-section h2, #circuit-section h2, #truth-table-section h2 { margin-top: 0; font-size: 18px; }
+.toolbox-label { font-size: 13px; color: #475569; margin: 0 0 8px; }
+
+#gatePalette { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.palette-gate {
+    padding: 11px 6px;
+    text-align: center;
+    font-weight: 700;
+    color: #1e40af;
+    background: #eff6ff;
+    border: 2px solid #2563eb;
+    border-radius: 8px;
+    cursor: grab;
+    user-select: none;
+}
+.palette-gate:hover { background: #dbeafe; }
+.palette-gate:focus-visible, summary:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+summary { cursor: pointer; font-weight: 600; margin: 10px 0 4px; }
+
+#circuitCanvas {
+    min-height: 560px;
+    border: 2px solid #94a3b8;
+    border-radius: 8px;
+    background-color: #f8fafc;
+    background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+}
+.canvas-gate { width: 130px; min-height: 84px; padding: 10px; }
+.canvas-gate h3 { margin: 4px 0; font-size: 16px; }
+
+@media (max-width: 900px) {
+    body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "canvas" "tool" "table" "tester"; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+
+/* ---- logic.ly style components: gate symbols, switches, lamps ---- */
+.canvas-gate {
+    width: 130px; height: 84px; min-height: 0; padding: 0;
+    background: transparent; border: 0; box-shadow: none; border-radius: 0;
+}
+.canvas-gate > h3 {
+    position: absolute; left: 0; right: 0; top: -20px; margin: 0;
+    font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: .4px;
+}
+.canvas-gate > p:not(.gate-signal-value) { display: none; }
+.canvas-gate .gate-signal-value {
+    position: absolute; left: 50%; bottom: -30px; transform: translateX(-50%);
+    margin: 0 !important; white-space: nowrap; font-size: 12px; padding: 3px 8px;
+}
+.gate-symbol { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.gate-symbol .lead, .gate-symbol .shape, .palette-symbol .lead, .palette-symbol .shape {
+    stroke: #475569; stroke-width: 3; stroke-linecap: round; fill: none;
+}
+.gate-symbol .shape, .palette-symbol .shape { fill: #ffffff; }
+.gate-symbol .shape.back, .palette-symbol .shape.back { fill: none; }
+.canvas-gate.out-1 .shape, .canvas-gate.out-1 .lead-out { stroke: #16a34a; }
+.gate-input-port, .gate-output-port { background: #f8fafc; border-color: #475569; }
+
+.port-switch {
+    display: none; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 20px; border-radius: 10px; background: #94a3b8; cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.25);
+}
+.port-switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff; transition: left .12s;
+}
+.port-switch.on { background: #16a34a; }
+.port-switch.on::after { left: 18px; }
+
+.out-lamp {
+    display: none; position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0;
+    border: 2px solid #64748b; pointer-events: none;
+}
+.out-lamp.on { background: #facc15; border-color: #ca8a04; box-shadow: 0 0 14px 5px rgba(250,204,21,.85); }
+
+.palette-gate { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; }
+.palette-symbol { width: 64px; height: 42px; overflow: visible; pointer-events: none; }
+.palette-gate span { font-size: 12px; }
+
+
+/* ---- refined input switch ---- */
+.port-switch {
+    right: 22px; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 24px; box-sizing: border-box;
+    border: 2px solid #64748b; border-radius: 7px;
+    background: linear-gradient(#f1f5f9, #dbe3ee);
+    color: #475569; font: 700 12px/20px ui-monospace, Menlo, Consolas, monospace;
+    text-align: right; padding-right: 8px; user-select: none; cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18), 0 1px 0 rgba(255, 255, 255, .8);
+    transition: background .15s, border-color .15s, filter .15s;
+}
+.port-switch::before {            /* short connector from the switch to its input dot */
+    content: ""; position: absolute; right: -10px; top: 50%; width: 8px; height: 3px;
+    margin-top: -1.5px; border-radius: 2px; background: #64748b;
+}
+.port-switch::after {             /* sliding knob */
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 4px; background: #fff; border: 1px solid #94a3b8;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .3); transition: left .15s ease;
+}
+.port-switch:hover { filter: brightness(.96); }
+.port-switch.on {
+    background: linear-gradient(#22c55e, #16a34a); border-color: #15803d; color: #fff;
+    text-align: left; padding-left: 8px; padding-right: 0;
+}
+.port-switch.on::before { background: #16a34a; }
+.port-switch.on::after { left: 22px; border-color: #bbf7d0; }
+@media (prefers-reduced-motion: reduce) { .port-switch, .port-switch::after { transition: none; } }
+
+/* ---- wiring fix: connection dots always sit above every gate, switch and wire ---- */
+#circuitCanvas { isolation: isolate; }
+#wireLayer { z-index: -1; }              /* wires are drawn behind the gates */
+.canvas-gate { z-index: auto; }          /* gates no longer trap their dots in a private layer */
+.gate-input-port { z-index: 5; }
+.gate-output-port { z-index: 6; }        /* output dots win over a neighbour's switch */
+.gate-input-port::before, .gate-output-port::before {   /* larger, easier click target */
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+}
+.gate-input-port:hover, .gate-output-port:hover { background: #fde68a; border-color: #d97706; }
+.gate-output-port.selected { background: #f59e0b; border-color: #d97706; }
